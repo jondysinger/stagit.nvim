@@ -4,6 +4,71 @@ local state = require("stagit.state")
 local util = require("stagit.util")
 
 local M = {}
+local panel_ns = vim.api.nvim_create_namespace("stagit-panel")
+local panel_augroup = vim.api.nvim_create_augroup("StagitPanelHighlights", { clear = true })
+local highlight_autocmd_registered = false
+
+local function ensure_highlights()
+  vim.api.nvim_set_hl(0, "StagitPanelBranchLabel", { link = "Directory", default = true })
+  vim.api.nvim_set_hl(0, "StagitPanelBranchValue", { link = "Title", default = true })
+  vim.api.nvim_set_hl(0, "StagitPanelSection", { link = "Special", default = true })
+  vim.api.nvim_set_hl(0, "StagitPanelEmpty", { link = "Comment", default = true })
+  vim.api.nvim_set_hl(0, "StagitPanelStaged", { link = "DiffAdd", default = true })
+  vim.api.nvim_set_hl(0, "StagitPanelUnstaged", { link = "DiffChange", default = true })
+end
+
+local function apply_panel_highlights(buf, status)
+  vim.api.nvim_buf_clear_namespace(buf, panel_ns, 0, -1)
+  vim.api.nvim_buf_add_highlight(buf, panel_ns, "StagitPanelBranchLabel", 0, 0, #"Branch:")
+  vim.api.nvim_buf_add_highlight(buf, panel_ns, "StagitPanelBranchValue", 0, #"Branch: ", -1)
+  vim.api.nvim_buf_add_highlight(buf, panel_ns, "StagitPanelSection", 2, 0, -1)
+
+  local line = 3
+  if #status.staged == 0 then
+    vim.api.nvim_buf_add_highlight(buf, panel_ns, "StagitPanelEmpty", line, 0, -1)
+    line = line + 1
+  else
+    for _ = 1, #status.staged do
+      vim.api.nvim_buf_add_highlight(buf, panel_ns, "StagitPanelStaged", line, 2, -1)
+      line = line + 1
+    end
+  end
+
+  line = line + 1
+  vim.api.nvim_buf_add_highlight(buf, panel_ns, "StagitPanelSection", line, 0, -1)
+  line = line + 1
+
+  if #status.unstaged == 0 then
+    vim.api.nvim_buf_add_highlight(buf, panel_ns, "StagitPanelEmpty", line, 0, -1)
+    return
+  end
+
+  for _ = 1, #status.unstaged do
+    vim.api.nvim_buf_add_highlight(buf, panel_ns, "StagitPanelUnstaged", line, 2, -1)
+    line = line + 1
+  end
+end
+
+local function ensure_highlight_autocmd()
+  if highlight_autocmd_registered then
+    return
+  end
+
+  vim.api.nvim_create_autocmd("ColorScheme", {
+    group = panel_augroup,
+    callback = function()
+      ensure_highlights()
+      if util.is_valid_buf(state.panel_buf) then
+        vim.schedule(function()
+          if util.is_valid_buf(state.panel_buf) then
+            M.refresh()
+          end
+        end)
+      end
+    end,
+  })
+  highlight_autocmd_registered = true
+end
 
 local function resolve_repo_root()
   if state.panel_repo_root then
@@ -30,6 +95,9 @@ local function ensure_panel_buffer()
   if util.is_valid_buf(state.panel_buf) then
     return state.panel_buf
   end
+
+  ensure_highlights()
+  ensure_highlight_autocmd()
 
   local buf = vim.api.nvim_create_buf(false, true)
   state.panel_buf = buf
@@ -129,6 +197,7 @@ local function set_panel_lines(status)
     util.buf_set_lines(buf, lines)
   end)
   vim.bo[buf].modifiable = false
+  apply_panel_highlights(buf, status)
 end
 
 local function refresh_active_diff_if_needed(path)

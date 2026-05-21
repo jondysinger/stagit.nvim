@@ -57,3 +57,16 @@ Inside the commit popup:
 - `<C-s>`: create the commit
 - `q`: cancel in normal mode
 - `<C-c>`: cancel in insert mode
+
+## Highlights
+
+The panel uses colorscheme-linked highlight groups so it follows your active Neovim palette:
+
+- `StagitPanelBranchLabel`
+- `StagitPanelBranchValue`
+- `StagitPanelSection`
+- `StagitPanelEmpty`
+- `StagitPanelStaged`
+- `StagitPanelUnstaged`
+
+Override any of them in your config with `vim.api.nvim_set_hl()` if you want a different look.
