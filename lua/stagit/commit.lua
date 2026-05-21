@@ -62,6 +62,7 @@ function M.open(repo_root)
 
   close_commit_window()
 
+  local mappings = config.get().mappings.commit
   local width = math.min(80, math.max(50, vim.o.columns - 8))
   local height = math.min(14, math.max(8, vim.o.lines - 8))
   local geometry = util.window_center(width, height)
@@ -73,7 +74,7 @@ function M.open(repo_root)
     width = geometry.width,
     height = geometry.height,
     border = "rounded",
-    title = " stagit commit ",
+    title = (" stagit commit · %s to submit "):format(mappings.submit),
     title_pos = "center",
     style = "minimal",
   })
@@ -94,7 +95,6 @@ function M.open(repo_root)
     "",
   })
 
-  local mappings = config.get().mappings.commit
   util.set_buf_map(buf, "n", mappings.submit, submit_message, "Submit commit")
   util.set_buf_map(buf, "i", mappings.submit, function()
     vim.schedule(submit_message)
