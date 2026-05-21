@@ -124,7 +124,9 @@ local function ensure_panel_buffer()
     M.refresh()
   end, "Refresh panel")
   util.set_buf_map(buf, "n", mappings.close, function()
-    M.close()
+    if #vim.api.nvim_list_wins() > 1 then
+      M.close()
+    end
   end, "Close panel")
 
   return buf
