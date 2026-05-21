@@ -16,6 +16,7 @@ end
 
 local function close_commit_window()
   if state.commit and util.is_valid_win(state.commit.win) then
+    vim.cmd("stopinsert")
     vim.api.nvim_win_close(state.commit.win, true)
   end
   state.commit = nil
